@@ -2,7 +2,6 @@
   "name": "server",
   "type": "module",
   "scripts": {
-    "check-types": "tsc -b",
     "dev": "cargo run",
     "build": "cargo build",
     "db:start": "docker compose up -d",
