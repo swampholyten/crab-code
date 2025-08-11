@@ -1,0 +1,24 @@
+{
+  "name": "crab-code",
+  "private": true,
+  "workspaces": [
+    "apps/*",
+    "packages/*"
+  ],
+  "scripts": {
+    "dev": "turbo dev",
+    "build": "turbo build",
+    "check-types": "turbo check-types",
+    "dev:web": "turbo -F web dev",
+    "dev:server": "turbo -F server dev",
+    "db:start": "turbo -F server db:start",
+    "db:watch": "turbo -F server db:watch",
+    "db:stop": "turbo -F server db:stop",
+    "db:down": "turbo -F server db:down"
+  },
+  "dependencies": {},
+  "devDependencies": {
+    "turbo": "^2.5.4"
+  },
+  "packageManager": "bun@1.2.10"
+}

@@ -1,0 +1,13 @@
+{
+  "name": "server",
+  "type": "module",
+  "scripts": {
+    "check-types": "tsc -b",
+    "dev": "cargo run",
+    "build": "cargo build",
+    "db:start": "docker compose up -d",
+    "db:watch": "docker compose up",
+    "db:stop": "docker compose stop",
+    "db:down": "docker compose down"
+  }
+}
