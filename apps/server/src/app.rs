@@ -10,10 +10,11 @@ use crate::{
     },
     errors::Result,
     repositories::{
-        problem::ProblemRepository, submission::SubmissionRepository, user::UserRepository,
+        language::LanguageRepository, problem::ProblemRepository, submission::SubmissionRepository,
+        user::UserRepository,
     },
     routes,
-    services::{problem::ProblemService, user::UserService},
+    services::{language::LanguageService, problem::ProblemService, user::UserService},
 };
 use axum::{Router, http::StatusCode, response::IntoResponse};
 use sqlx::{PgPool, postgres::PgPoolOptions};
@@ -49,6 +50,7 @@ pub fn setup_router(app_state: AppState) -> Router {
         .route("/health", axum::routing::get(health_check))
         .merge(routes::user::router())
         .merge(routes::problem::router())
+        .merge(routes::language::router())
         .fallback(fallback)
         .with_state(app_state)
         .layer(cors)
@@ -97,7 +99,7 @@ pub fn setup_app_state(pool: PgPool, config: Config) -> Result<AppState> {
     let user_repository = Arc::new(UserRepository::new(pool.as_ref().clone()));
     let problem_repository = Arc::new(ProblemRepository::new(pool.as_ref().clone()));
     let submission_repository = Arc::new(SubmissionRepository::new(pool.as_ref().clone()));
-    // let language_repository = Arc::new(LanguageRepository::new(pool.as_ref().clone()));
+    let language_repository = Arc::new(LanguageRepository::new(pool.as_ref().clone()));
     // let tag_repository = Arc::new(TagRepository::new(pool.as_ref().clone()));
     // let test_case_repository = Arc::new(TestCaseRepository::new(pool.as_ref().clone()));
 
@@ -121,7 +123,7 @@ pub fn setup_app_state(pool: PgPool, config: Config) -> Result<AppState> {
     //     language_repository.clone(),
     // ));
     //
-    // let language_service = Arc::new(LanguageService::new(language_repository.clone()));
+    let language_service = Arc::new(LanguageService::new(language_repository.clone()));
     //
     // let tag_service = Arc::new(TagService::new(
     //     tag_repository.clone(),
@@ -151,7 +153,7 @@ pub fn setup_app_state(pool: PgPool, config: Config) -> Result<AppState> {
         problem_service,
         // submission_service,
         // judge_service,
-        // language_service,
+        language_service,
         // tag_service,
         // test_case_service,
         // stats_service,

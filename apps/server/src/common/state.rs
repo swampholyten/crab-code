@@ -22,8 +22,8 @@ pub struct AppState {
     // pub submission_service: Arc<dyn SubmissionServiceTrait>,
     // Service handling code execution and judging.
     // pub judge_service: Arc<dyn JudgeServiceTrait>,
-    // Service handling programming languages.
-    // pub language_service: Arc<dyn LanguageServiceTrait>,
+    /// Service handling programming languages.
+    pub language_service: Arc<dyn LanguageServiceTrait>,
     // Service handling tags and categorization.
     // pub tag_service: Arc<dyn TagServiceTrait>,
     // Service handling test cases for problems.
@@ -41,7 +41,7 @@ impl AppState {
         problem_service: Arc<dyn ProblemServiceTrait>,
         // submission_service: Arc<dyn SubmissionServiceTrait>,
         // judge_service: Arc<dyn JudgeServiceTrait>,
-        // language_service: Arc<dyn LanguageServiceTrait>,
+        language_service: Arc<dyn LanguageServiceTrait>,
         // tag_service: Arc<dyn TagServiceTrait>,
         // test_case_service: Arc<dyn TestCaseServiceTrait>,
         // stats_service: Arc<dyn StatsServiceTrait>,
@@ -53,7 +53,7 @@ impl AppState {
             problem_service,
             // submission_service,
             // judge_service,
-            // language_service,
+            language_service,
             // tag_service,
             // test_case_service,
             // stats_service,
