@@ -5,7 +5,7 @@ use axum::{
 
 use crate::{
     common::state::AppState,
-    handlers::{problem, submission, tag},
+    handlers::{problem, submission, tag, test_case},
 };
 
 fn problem_routes() -> Router<AppState> {
@@ -43,6 +43,22 @@ fn problem_routes() -> Router<AppState> {
         .route(
             "/{problem_id}/submissions/stats",
             get(submission::get_problem_submission_stats),
+        )
+        .route(
+            "/{problem_id}/test-cases",
+            post(test_case::create_test_case),
+        )
+        .route(
+            "/{problem_id}/test-cases",
+            get(test_case::get_test_cases_for_problem),
+        )
+        .route(
+            "/{problem_id}/test-cases/sample",
+            get(test_case::get_sample_test_cases),
+        )
+        .route(
+            "/{problem_id}/test-cases/bulk",
+            post(test_case::bulk_create_test_cases),
         )
 }
 

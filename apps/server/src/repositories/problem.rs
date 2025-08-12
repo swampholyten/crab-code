@@ -135,8 +135,7 @@ impl ProblemRepositoryTrait for ProblemRepository {
         {
             param_count += 1;
             conditions.push(format!(
-                " AND (p.title ILIKE ${} OR p.description ILIKE ${})",
-                param_count, param_count
+                " AND (p.title ILIKE ${param_count} OR p.description ILIKE ${param_count})"
             ));
         }
 
