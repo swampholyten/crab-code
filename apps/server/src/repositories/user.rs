@@ -15,6 +15,7 @@ pub trait UserRepositoryTrait: Send + Sync {
     async fn update(&self, id: Uuid, update: UpdateUserRequest) -> Result<User>;
     async fn delete(&self, id: Uuid) -> Result<()>;
     async fn list(&self, limit: Option<i32>, offset: Option<i32>) -> Result<Vec<User>>;
+    async fn count(&self) -> Result<i64>;
 }
 
 pub struct UserRepository {
@@ -134,5 +135,11 @@ impl UserRepositoryTrait for UserRepository {
             .map_err(|e| RepositoryError::Database(e.to_string()))?;
 
         Ok(users)
+    }
+
+    async fn count(&self) -> Result<i64> {
+        let query = "SELECT COUNT(*) as count FROM users";
+        let row: (i64,) = sqlx::query_as(query).fetch_one(&self.pool).await?;
+        Ok(row.0)
     }
 }

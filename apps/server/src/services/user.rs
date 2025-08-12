@@ -22,6 +22,7 @@ pub trait UserServiceTrait: Send + Sync {
     async fn update_user(&self, id: Uuid, update: UpdateUserRequest) -> Result<User>;
     async fn delete_user(&self, id: Uuid) -> Result<()>;
     async fn get_user_profile(&self, id: Uuid) -> Result<UserProfile>;
+    async fn count_users(&self) -> Result<i64>;
 }
 
 #[derive(Clone)]
@@ -155,5 +156,8 @@ impl UserServiceTrait for UserService {
 
         Ok(profile)
     }
-}
 
+    async fn count_users(&self) -> Result<i64> {
+        self.user_repository.count().await
+    }
+}
