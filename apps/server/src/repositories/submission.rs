@@ -7,17 +7,21 @@ use crate::{errors::Result, models::submission::*};
 #[async_trait]
 pub trait SubmissionRepositoryTrait: Send + Sync {
     async fn create(&self, submission: CreateSubmissionRequest) -> Result<Submission>;
+
     async fn find_by_id(&self, id: Uuid) -> Result<Option<Submission>>;
+
     async fn find_by_user(
         &self,
         user_id: Uuid,
         filter: SubmissionFilter,
     ) -> Result<Vec<Submission>>;
+
     async fn find_by_problem(
         &self,
         problem_id: Uuid,
         filter: SubmissionFilter,
     ) -> Result<Vec<Submission>>;
+
     async fn update_status(
         &self,
         id: Uuid,
@@ -26,12 +30,18 @@ pub trait SubmissionRepositoryTrait: Send + Sync {
         memory_used: Option<i32>,
         error_message: Option<String>,
     ) -> Result<()>;
+
     async fn find_latest_accepted(
         &self,
         user_id: Uuid,
         problem_id: Uuid,
     ) -> Result<Option<Submission>>;
-    async fn count_by_status(&self, status: SubmissionStatus) -> Result<i64>;
+
+    async fn get_problem_submissions(
+        &self,
+        problem_id: Uuid,
+        filter: SubmissionFilter,
+    ) -> Result<Vec<Submission>>;
 }
 
 pub struct SubmissionRepository {
@@ -230,14 +240,30 @@ impl SubmissionRepositoryTrait for SubmissionRepository {
         Ok(submission)
     }
 
-    async fn count_by_status(&self, status: SubmissionStatus) -> Result<i64> {
-        let query = "SELECT COUNT(*) as count FROM submissions WHERE status = $1";
+    async fn get_problem_submissions(
+        &self,
+        problem_id: Uuid,
+        filter: SubmissionFilter,
+    ) -> Result<Vec<Submission>> {
+        let submissions = sqlx::query_as::<_, Submission>(
+            r#"
+        SELECT *
+        FROM submissions
+        WHERE problem_id = $1
+        AND ($2::submission_status IS NULL OR status = $2)
+        AND ($3::uuid IS NULL OR language_id = $3)
+        ORDER BY created_at DESC
+        LIMIT $4 OFFSET $5
+        "#,
+        )
+        .bind(problem_id)
+        .bind(&filter.status)
+        .bind(&filter.language_id)
+        .bind(filter.limit.unwrap_or(20))
+        .bind(filter.offset.unwrap_or(0))
+        .fetch_all(&self.pool)
+        .await?;
 
-        let row: (i64,) = sqlx::query_as(query)
-            .bind(status)
-            .fetch_one(&self.pool)
-            .await?;
-
-        Ok(row.0)
+        Ok(submissions)
     }
 }

@@ -15,7 +15,8 @@ use crate::{
     },
     routes,
     services::{
-        language::LanguageService, problem::ProblemService, tag::TagService, user::UserService,
+        language::LanguageService, problem::ProblemService, submission::SubmissionService,
+        tag::TagService, user::UserService,
     },
 };
 use axum::{Router, http::StatusCode, response::IntoResponse};
@@ -54,6 +55,7 @@ pub fn setup_router(app_state: AppState) -> Router {
         .merge(routes::problem::router())
         .merge(routes::language::router())
         .merge(routes::tag::router())
+        .merge(routes::submission::router())
         .fallback(fallback)
         .with_state(app_state)
         .layer(cors)
@@ -114,11 +116,11 @@ pub fn setup_app_state(pool: PgPool, config: Config) -> Result<AppState> {
 
     let problem_service = Arc::new(ProblemService::new(problem_repository.clone()));
     //
-    // let submission_service = Arc::new(SubmissionService::new(
-    //     submission_repository.clone(),
-    //     problem_repository.clone(),
-    //     user_repository.clone(),
-    // ));
+    let submission_service = Arc::new(SubmissionService::new(
+        submission_repository.clone(),
+        problem_repository.clone(),
+        user_repository.clone(),
+    ));
     //
     // let judge_service = Arc::new(JudgeService::new(
     //     submission_repository.clone(),
@@ -154,7 +156,7 @@ pub fn setup_app_state(pool: PgPool, config: Config) -> Result<AppState> {
         // auth_service,
         user_service,
         problem_service,
-        // submission_service,
+        submission_service,
         // judge_service,
         language_service,
         tag_service,

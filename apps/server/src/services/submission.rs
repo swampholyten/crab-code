@@ -21,6 +21,7 @@ pub trait SubmissionServiceTrait: Send + Sync {
         user_id: Uuid,
         filter: SubmissionFilter,
     ) -> Result<Vec<Submission>>;
+
     async fn get_problem_submissions(
         &self,
         problem_id: Uuid,
