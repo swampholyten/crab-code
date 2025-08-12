@@ -9,9 +9,11 @@ use crate::{
         state::AppState,
     },
     errors::Result,
-    repositories::{submission::SubmissionRepository, user::UserRepository},
-    routes::user::router,
-    services::user::UserService,
+    repositories::{
+        problem::ProblemRepository, submission::SubmissionRepository, user::UserRepository,
+    },
+    routes,
+    services::{problem::ProblemService, user::UserService},
 };
 use axum::{Router, http::StatusCode, response::IntoResponse};
 use sqlx::{PgPool, postgres::PgPoolOptions};
@@ -45,7 +47,8 @@ pub fn setup_router(app_state: AppState) -> Router {
 
     Router::new()
         .route("/health", axum::routing::get(health_check))
-        .merge(router())
+        .merge(routes::user::router())
+        .merge(routes::problem::router())
         .fallback(fallback)
         .with_state(app_state)
         .layer(cors)
@@ -92,7 +95,7 @@ pub fn setup_app_state(pool: PgPool, config: Config) -> Result<AppState> {
 
     // Create repositories
     let user_repository = Arc::new(UserRepository::new(pool.as_ref().clone()));
-    // let problem_repository = Arc::new(ProblemRepository::new(pool.as_ref().clone()));
+    let problem_repository = Arc::new(ProblemRepository::new(pool.as_ref().clone()));
     let submission_repository = Arc::new(SubmissionRepository::new(pool.as_ref().clone()));
     // let language_repository = Arc::new(LanguageRepository::new(pool.as_ref().clone()));
     // let tag_repository = Arc::new(TagRepository::new(pool.as_ref().clone()));
@@ -104,11 +107,7 @@ pub fn setup_app_state(pool: PgPool, config: Config) -> Result<AppState> {
         submission_repository.clone(),
     ));
 
-    // let problem_service = Arc::new(ProblemService::new(
-    //     problem_repository.clone(),
-    //     tag_repository.clone(),
-    //     test_case_repository.clone(),
-    // ));
+    let problem_service = Arc::new(ProblemService::new(problem_repository.clone()));
     //
     // let submission_service = Arc::new(SubmissionService::new(
     //     submission_repository.clone(),
@@ -149,7 +148,7 @@ pub fn setup_app_state(pool: PgPool, config: Config) -> Result<AppState> {
         config,
         // auth_service,
         user_service,
-        // problem_service,
+        problem_service,
         // submission_service,
         // judge_service,
         // language_service,

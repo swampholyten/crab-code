@@ -16,8 +16,8 @@ pub struct AppState {
     // pub auth_service: Arc<dyn AuthServiceTrait>,
     /// Service handling user-related logic.
     pub user_service: Arc<dyn UserServiceTrait>,
-    // Service handling problem-related logic.
-    // pub problem_service: Arc<dyn ProblemServiceTrait>,
+    /// Service handling problem-related logic.
+    pub problem_service: Arc<dyn ProblemServiceTrait>,
     // Service handling code submission and execution.
     // pub submission_service: Arc<dyn SubmissionServiceTrait>,
     // Service handling code execution and judging.
@@ -38,7 +38,7 @@ impl AppState {
         config: Config,
         // auth_service: Arc<dyn AuthServiceTrait>,
         user_service: Arc<dyn UserServiceTrait>,
-        // problem_service: Arc<dyn ProblemServiceTrait>,
+        problem_service: Arc<dyn ProblemServiceTrait>,
         // submission_service: Arc<dyn SubmissionServiceTrait>,
         // judge_service: Arc<dyn JudgeServiceTrait>,
         // language_service: Arc<dyn LanguageServiceTrait>,
@@ -50,7 +50,7 @@ impl AppState {
             config,
             // auth_service,
             user_service,
-            // problem_service,
+            problem_service,
             // submission_service,
             // judge_service,
             // language_service,

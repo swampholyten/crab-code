@@ -1,3 +1,4 @@
+use crate::errors::Result;
 use axum::{
     Json,
     http::StatusCode,
@@ -134,7 +135,7 @@ impl ApiResponse<()> {
 }
 
 /// Type alias for convenient usage
-pub type ApiResult<T> = Result<ApiResponse<T>, crate::errors::Error>;
+pub type ApiResult<T> = Result<Json<ApiResponse<T>>>;
 
 impl<T> IntoResponse for ApiResponse<T>
 where
