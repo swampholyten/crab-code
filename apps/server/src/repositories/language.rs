@@ -1,5 +1,5 @@
 use crate::errors::Result;
-use crate::models::language::{CreateLanguageRequest, Language, UpdateLanguageRequest};
+use crate::models::language::*;
 
 pub trait LanguageRepositoryTrait: Send + Sync {
     async fn create(&self, language: CreateLanguageRequest) -> Result<Language>;
