@@ -3,7 +3,10 @@ use axum::{
     routing::{get, patch},
 };
 
-use crate::{common::state::AppState, handlers::submission};
+use crate::{
+    common::state::AppState,
+    handlers::{judge, submission},
+};
 
 fn submission_routes() -> Router<AppState> {
     Router::new()
@@ -15,6 +18,10 @@ fn submission_routes() -> Router<AppState> {
         .route(
             "/{submission_id}/code",
             get(submission::get_submission_code),
+        )
+        .route(
+            "/{submission_id}/execution-logs",
+            get(judge::get_execution_logs),
         )
 }
 

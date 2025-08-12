@@ -10,13 +10,15 @@ use crate::{
     },
     errors::Result,
     repositories::{
-        language::LanguageRepository, problem::ProblemRepository, submission::SubmissionRepository,
-        tag::TagRepository, test_case::TestCaseRepository, user::UserRepository,
+        judge::JudgeRepository, language::LanguageRepository, problem::ProblemRepository,
+        submission::SubmissionRepository, tag::TagRepository, test_case::TestCaseRepository,
+        user::UserRepository,
     },
     routes,
     services::{
-        language::LanguageService, problem::ProblemService, submission::SubmissionService,
-        tag::TagService, test_case::TestCaseService, user::UserService,
+        judge::JudgeService, language::LanguageService, problem::ProblemService,
+        submission::SubmissionService, tag::TagService, test_case::TestCaseService,
+        user::UserService,
     },
 };
 use axum::{Router, http::StatusCode, response::IntoResponse};
@@ -108,6 +110,10 @@ pub fn setup_app_state(pool: PgPool, config: Config) -> Result<AppState> {
     let language_repository = Arc::new(LanguageRepository::new(pool.as_ref().clone()));
     let tag_repository = Arc::new(TagRepository::new(pool.as_ref().clone()));
     let test_case_repository = Arc::new(TestCaseRepository::new(pool.as_ref().clone()));
+    let judge_repository = Arc::new(JudgeRepository::new(
+        pool.as_ref().clone(),
+        language_repository.clone(),
+    ));
 
     // Create services with repository dependencies
     let user_service = Arc::new(UserService::new(
@@ -122,13 +128,14 @@ pub fn setup_app_state(pool: PgPool, config: Config) -> Result<AppState> {
         problem_repository.clone(),
         user_repository.clone(),
     ));
-    //
-    // let judge_service = Arc::new(JudgeService::new(
-    //     submission_repository.clone(),
-    //     test_case_repository.clone(),
-    //     language_repository.clone(),
-    // ));
-    //
+
+    // Create services
+    let judge_service = Arc::new(JudgeService::new(
+        judge_repository,
+        submission_repository.clone(),
+        test_case_repository.clone(),
+        language_repository.clone(), // Add this
+    )); //
     let language_service = Arc::new(LanguageService::new(language_repository.clone()));
     //
     let tag_service = Arc::new(TagService::new(
@@ -158,7 +165,7 @@ pub fn setup_app_state(pool: PgPool, config: Config) -> Result<AppState> {
         user_service,
         problem_service,
         submission_service,
-        // judge_service,
+        judge_service,
         language_service,
         tag_service,
         test_case_service,

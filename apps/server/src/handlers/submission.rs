@@ -124,8 +124,8 @@ pub async fn create_submission(
         .create_submission(create_request)
         .await?;
 
-    // TODO: Trigger judge the submission
-    // state.judge_service.queue_submission(submission.id).await?;
+    // Queue submission for judging
+    state.judge_service.queue_submission(submission.id).await?;
 
     let response = ApiResponse::success_with_message(
         submission.into(),

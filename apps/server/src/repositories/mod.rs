@@ -1,3 +1,4 @@
+pub mod judge;
 pub mod language;
 pub mod problem;
 pub mod submission;
