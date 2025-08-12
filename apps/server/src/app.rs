@@ -1,23 +1,54 @@
+use std::sync::Arc;
+
+use axum::http::{Method, header};
+use tower_http::cors::{Any, CorsLayer};
+
 use crate::{
-    common::{config::Config, state::AppState},
+    common::{
+        config::{self, Config},
+        state::AppState,
+    },
     errors::Result,
+    repositories::{submission::SubmissionRepository, user::UserRepository},
+    routes::user::router,
+    services::user::UserService,
 };
 use axum::{Router, http::StatusCode, response::IntoResponse};
 use sqlx::{PgPool, postgres::PgPoolOptions};
 use tracing_subscriber::{layer::SubscriberExt, util::SubscriberInitExt};
 
-pub async fn run() {
-    todo!()
-    // Load configuration.
-    // let config = config::load();
+pub async fn run() -> Result<()> {
+    setup_tracing();
+    let config = config::load();
+    let pool = setup_database(&config).await?;
+    let app_state = setup_app_state(pool, config.clone())?;
+
+    let app = setup_router(app_state);
+
+    let addr = format!("{}:{}", config.service_host, config.service_port);
+
+    tracing::info!("Server running at {addr}");
+
+    let listener = tokio::net::TcpListener::bind(&addr).await?;
+
+    axum::serve(listener, app).await?;
+
+    Ok(())
 }
 
 /// Create the main router
-pub fn create_router(state: AppState) -> Router {
+pub fn setup_router(app_state: AppState) -> Router {
+    let cors = CorsLayer::new()
+        .allow_methods([Method::GET, Method::POST, Method::PATCH, Method::DELETE])
+        .allow_headers([header::CONTENT_TYPE, header::AUTHORIZATION])
+        .allow_origin(Any);
+
     Router::new()
         .route("/health", axum::routing::get(health_check))
+        .merge(router())
         .fallback(fallback)
-        .with_state(state)
+        .with_state(app_state)
+        .layer(cors)
 }
 
 async fn health_check() -> &'static str {
@@ -56,74 +87,74 @@ pub async fn setup_database(config: &Config) -> Result<PgPool> {
     Ok(pool)
 }
 
-// pub fn setup_app_state(pool: PgPool, config: Config) -> Result<AppState> {
-//     let pool = Arc::new(pool);
-//
-//     // Create repositories
-//     let user_repository = Arc::new(UserRepository::new(pool.as_ref().clone()));
-//     let problem_repository = Arc::new(ProblemRepository::new(pool.as_ref().clone()));
-//     let submission_repository = Arc::new(SubmissionRepository::new(pool.as_ref().clone()));
-//     let language_repository = Arc::new(LanguageRepository::new(pool.as_ref().clone()));
-//     let tag_repository = Arc::new(TagRepository::new(pool.as_ref().clone()));
-//     let test_case_repository = Arc::new(TestCaseRepository::new(pool.as_ref().clone()));
-//
-//     // Create services with repository dependencies
-//     let user_service = Arc::new(UserService::new(
-//         user_repository.clone(),
-//         submission_repository.clone(),
-//     ));
-//
-//     let problem_service = Arc::new(ProblemService::new(
-//         problem_repository.clone(),
-//         tag_repository.clone(),
-//         test_case_repository.clone(),
-//     ));
-//
-//     let submission_service = Arc::new(SubmissionService::new(
-//         submission_repository.clone(),
-//         problem_repository.clone(),
-//         user_repository.clone(),
-//     ));
-//
-//     let judge_service = Arc::new(JudgeService::new(
-//         submission_repository.clone(),
-//         test_case_repository.clone(),
-//         language_repository.clone(),
-//     ));
-//
-//     let language_service = Arc::new(LanguageService::new(language_repository.clone()));
-//
-//     let tag_service = Arc::new(TagService::new(
-//         tag_repository.clone(),
-//         problem_repository.clone(),
-//     ));
-//
-//     let test_case_service = Arc::new(TestCaseService::new(
-//         test_case_repository.clone(),
-//         problem_repository.clone(),
-//     ));
-//
-//     let stats_service = Arc::new(StatsService::new(
-//         submission_repository.clone(),
-//         problem_repository.clone(),
-//         user_repository.clone(),
-//     ));
-//
-//     let auth_service = Arc::new(AuthService::new(
-//         user_service.clone(),
-//         config.jwt_secret.clone(),
-//     ));
-//
-//     Ok(AppState::new(
-//         config,
-//         auth_service,
-//         user_service,
-//         problem_service,
-//         submission_service,
-//         judge_service,
-//         language_service,
-//         tag_service,
-//         test_case_service,
-//         stats_service,
-//     ))
-// }
+pub fn setup_app_state(pool: PgPool, config: Config) -> Result<AppState> {
+    let pool = Arc::new(pool);
+
+    // Create repositories
+    let user_repository = Arc::new(UserRepository::new(pool.as_ref().clone()));
+    // let problem_repository = Arc::new(ProblemRepository::new(pool.as_ref().clone()));
+    let submission_repository = Arc::new(SubmissionRepository::new(pool.as_ref().clone()));
+    // let language_repository = Arc::new(LanguageRepository::new(pool.as_ref().clone()));
+    // let tag_repository = Arc::new(TagRepository::new(pool.as_ref().clone()));
+    // let test_case_repository = Arc::new(TestCaseRepository::new(pool.as_ref().clone()));
+
+    // Create services with repository dependencies
+    let user_service = Arc::new(UserService::new(
+        user_repository.clone(),
+        submission_repository.clone(),
+    ));
+
+    // let problem_service = Arc::new(ProblemService::new(
+    //     problem_repository.clone(),
+    //     tag_repository.clone(),
+    //     test_case_repository.clone(),
+    // ));
+    //
+    // let submission_service = Arc::new(SubmissionService::new(
+    //     submission_repository.clone(),
+    //     problem_repository.clone(),
+    //     user_repository.clone(),
+    // ));
+    //
+    // let judge_service = Arc::new(JudgeService::new(
+    //     submission_repository.clone(),
+    //     test_case_repository.clone(),
+    //     language_repository.clone(),
+    // ));
+    //
+    // let language_service = Arc::new(LanguageService::new(language_repository.clone()));
+    //
+    // let tag_service = Arc::new(TagService::new(
+    //     tag_repository.clone(),
+    //     problem_repository.clone(),
+    // ));
+    //
+    // let test_case_service = Arc::new(TestCaseService::new(
+    //     test_case_repository.clone(),
+    //     problem_repository.clone(),
+    // ));
+    //
+    // let stats_service = Arc::new(StatsService::new(
+    //     submission_repository.clone(),
+    //     problem_repository.clone(),
+    //     user_repository.clone(),
+    // ));
+    //
+    // let auth_service = Arc::new(AuthService::new(
+    //     user_service.clone(),
+    //     config.jwt_secret.clone(),
+    // ));
+
+    Ok(AppState::new(
+        config,
+        // auth_service,
+        user_service,
+        // problem_service,
+        // submission_service,
+        // judge_service,
+        // language_service,
+        // tag_service,
+        // test_case_service,
+        // stats_service,
+    ))
+}

@@ -16,6 +16,9 @@ pub enum Error {
     #[error("Internal server error")]
     InternalError,
 
+    #[error("Failed to initialize tokio runtime: {0}")]
+    InitializationError(#[from] std::io::Error),
+
     #[error("Database connection error: {0}")]
     Database(#[from] sqlx::Error),
 
@@ -48,6 +51,7 @@ impl IntoResponse for Error {
     fn into_response(self) -> axum::response::Response {
         let status_code = match self {
             Error::InternalError => StatusCode::INTERNAL_SERVER_ERROR,
+            Error::InitializationError(_) => StatusCode::INTERNAL_SERVER_ERROR,
             Error::Database(_) => StatusCode::INTERNAL_SERVER_ERROR,
             Error::Setup(_) => StatusCode::INTERNAL_SERVER_ERROR,
             Error::Repository(ref repo_err) => match repo_err {
