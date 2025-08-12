@@ -1,3 +1,4 @@
+use async_trait::async_trait;
 use uuid::Uuid;
 
 use crate::{
@@ -5,6 +6,7 @@ use crate::{
     models::{problem::Problem, tag::*},
 };
 
+#[async_trait]
 pub trait TagRepositoryTrait: Send + Sync {
     async fn create(&self, tag: CreateTagRequest) -> Result<Tag>;
     async fn find_by_name(&self, name: &str) -> Result<Option<Tag>>;

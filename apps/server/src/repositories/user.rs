@@ -1,3 +1,4 @@
+use async_trait::async_trait;
 use sqlx::PgPool;
 
 use uuid::Uuid;
@@ -5,6 +6,7 @@ use uuid::Uuid;
 use crate::errors::{RepositoryError, Result};
 use crate::models::user::*;
 
+#[async_trait]
 pub trait UserRepositoryTrait: Send + Sync {
     async fn create(&self, user: CreateUserRequest) -> Result<User>;
     async fn find_by_id(&self, id: Uuid) -> Result<Option<User>>;
@@ -25,6 +27,7 @@ impl UserRepository {
     }
 }
 
+#[async_trait]
 impl UserRepositoryTrait for UserRepository {
     async fn create(&self, user: CreateUserRequest) -> Result<User> {
         let query = r#"

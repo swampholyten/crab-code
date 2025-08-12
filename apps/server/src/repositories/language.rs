@@ -1,6 +1,9 @@
+use async_trait::async_trait;
+
 use crate::errors::Result;
 use crate::models::language::*;
 
+#[async_trait]
 pub trait LanguageRepositoryTrait: Send + Sync {
     async fn create(&self, language: CreateLanguageRequest) -> Result<Language>;
     async fn find_by_name(&self, name: &str) -> Result<Option<Language>>;
