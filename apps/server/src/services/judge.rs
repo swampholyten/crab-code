@@ -59,12 +59,20 @@ impl JudgeService {
             .await?
             .ok_or_else(|| JudgeError::UnsupportedLanguage(language.to_string()))?;
 
-        if let Some(compile_command) = &config.compile_command {
-            // Write source code to file
-            let source_file = work_dir.join(format!("solution{}", config.file_extension));
-            fs::write(&source_file, code).map_err(|e| JudgeError::SystemError(e.to_string()))?;
+        // 1. Combine user code with the harness template
+        let final_code = config.template.replace("// {{USER_CODE}}", code);
 
-            // Execute compile command
+        // 2. Write the combined code to the source file
+        let source_file = work_dir.join(format!("solution{}", config.file_extension));
+        fs::write(&source_file, final_code).map_err(|e| JudgeError::SystemError(e.to_string()))?;
+
+        // 3. Compile if needed (the rest of the function is the same)
+        if let Some(compile_command) = &config.compile_command {
+            tracing::debug!(
+                "Compiling {} code with command: {}",
+                language,
+                compile_command
+            );
             let output = Command::new("sh")
                 .arg("-c")
                 .arg(compile_command)
@@ -74,12 +82,11 @@ impl JudgeService {
 
             if !output.status.success() {
                 let error_msg = String::from_utf8_lossy(&output.stderr);
+                tracing::error!("Compilation failed for {}: {}", language, error_msg);
                 return Ok(Some(error_msg.to_string()));
+            } else {
+                tracing::debug!("Compilation successful for {}", language);
             }
-        } else {
-            // For interpreted languages, just write the source file
-            let source_file = work_dir.join(format!("solution{}", config.file_extension));
-            fs::write(&source_file, code).map_err(|e| JudgeError::SystemError(e.to_string()))?;
         }
 
         Ok(None)
@@ -103,13 +110,20 @@ impl JudgeService {
         let temp_dir = TempDir::new().map_err(|e| JudgeError::SystemError(e.to_string()))?;
         let work_dir = temp_dir.path();
 
-        // Compile if needed
+        // Compile if needed (this also writes the source file)
         if let Some(compile_error) = self.compile_code(code, language, work_dir).await? {
             return Ok((String::new(), compile_error, 0, 0, 1));
         }
 
         // Execute with timeout
         let start_time = std::time::Instant::now();
+
+        tracing::debug!(
+            "Executing {} code with command: {}",
+            language,
+            config.execute_command
+        );
+        tracing::debug!("Input data: {:?}", input);
 
         let execution_future = async {
             let mut child = Command::new("sh")
@@ -120,20 +134,20 @@ impl JudgeService {
                 .stdout(Stdio::piped())
                 .stderr(Stdio::piped())
                 .spawn()
-                .map_err(|e| JudgeError::SystemError(e.to_string()))?;
+                .map_err(|e| JudgeError::SystemError(format!("Failed to spawn process: {}", e)))?;
 
             // Write input to stdin
             if let Some(stdin) = child.stdin.as_mut() {
                 use std::io::Write;
-                stdin
-                    .write_all(input.as_bytes())
-                    .map_err(|e| JudgeError::SystemError(e.to_string()))?;
+                if let Err(e) = stdin.write_all(input.as_bytes()) {
+                    tracing::warn!("Failed to write input to stdin: {}", e);
+                }
             }
 
             // Wait for completion
-            let output = child
-                .wait_with_output()
-                .map_err(|e| JudgeError::SystemError(e.to_string()))?;
+            let output = child.wait_with_output().map_err(|e| {
+                JudgeError::SystemError(format!("Failed to wait for process: {}", e))
+            })?;
 
             Ok::<_, crate::errors::Error>(output)
         };
@@ -143,7 +157,7 @@ impl JudgeService {
             Ok(Ok(output)) => output,
             Ok(Err(e)) => return Err(e),
             Err(_) => {
-                // Timeout occurred
+                tracing::warn!("Execution timed out after {}ms", time_limit);
                 return Ok((
                     String::new(),
                     "Time limit exceeded".to_string(),
@@ -160,14 +174,37 @@ impl JudgeService {
         let stderr = String::from_utf8_lossy(&output.stderr).to_string();
         let exit_code = output.status.code().unwrap_or(-1);
 
+        tracing::debug!(
+            "Execution completed: exit_code={}, execution_time={}ms, stdout_len={}, stderr_len={}",
+            exit_code,
+            execution_time,
+            stdout.len(),
+            stderr.len()
+        );
+
+        if !stdout.is_empty() {
+            tracing::debug!("Program output: {:?}", stdout);
+        }
+        if !stderr.is_empty() {
+            tracing::debug!("Program stderr: {:?}", stderr);
+        }
+
         Ok((stdout, stderr, execution_time, memory_used, exit_code))
     }
 
     fn compare_output(&self, expected: &str, actual: &str) -> bool {
         // Normalize whitespace and compare
-        let expected_normalized = expected.trim().replace('\r', "");
-        let actual_normalized = actual.trim().replace('\r', "");
-        expected_normalized == actual_normalized
+        let expected_normalized = expected.trim().replace('\r', "").replace('\n', " ");
+        let actual_normalized = actual.trim().replace('\r', "").replace('\n', " ");
+
+        tracing::debug!("Comparing outputs:");
+        tracing::debug!("Expected (normalized): {:?}", expected_normalized);
+        tracing::debug!("Actual (normalized): {:?}", actual_normalized);
+
+        let matches = expected_normalized == actual_normalized;
+        tracing::debug!("Output comparison result: {}", matches);
+
+        matches
     }
 
     async fn execute_submission_internal(&self, submission_id: Uuid) -> Result<()> {
@@ -460,4 +497,3 @@ impl JudgeServiceTrait for JudgeService {
         self.language_repository.exists(language).await
     }
 }
-
