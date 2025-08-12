@@ -48,13 +48,6 @@ impl From<crate::models::language::Language> for LanguageConfig {
         {
             "python" => (None, "python3 solution.py".to_string(), 5000, 256 * 1024),
 
-            "c" => (
-                Some("gcc -o solution solution.c".to_string()),
-                "./solution".to_string(),
-                3000,
-                256 * 1024,
-            ),
-
             "rust" => (
                 Some("rustc solution.rs -o solution".to_string()),
                 "./solution".to_string(),
@@ -95,4 +88,3 @@ impl From<crate::models::language::Language> for LanguageConfig {
         }
     }
 }
-

@@ -47,6 +47,7 @@ impl JudgeService {
         }
     }
 
+    // TODO: Add template, validate code and run correctly
     async fn compile_code(
         &self,
         code: &str,
@@ -59,20 +60,18 @@ impl JudgeService {
             .await?
             .ok_or_else(|| JudgeError::UnsupportedLanguage(language.to_string()))?;
 
-        // 1. Combine user code with the harness template
-        let final_code = config.template.replace("// {{USER_CODE}}", code);
-
-        // 2. Write the combined code to the source file
+        // Write source code to file first
         let source_file = work_dir.join(format!("solution{}", config.file_extension));
-        fs::write(&source_file, final_code).map_err(|e| JudgeError::SystemError(e.to_string()))?;
+        fs::write(&source_file, code).map_err(|e| JudgeError::SystemError(e.to_string()))?;
 
-        // 3. Compile if needed (the rest of the function is the same)
+        // Compile if needed
         if let Some(compile_command) = &config.compile_command {
             tracing::debug!(
                 "Compiling {} code with command: {}",
                 language,
                 compile_command
             );
+
             let output = Command::new("sh")
                 .arg("-c")
                 .arg(compile_command)
