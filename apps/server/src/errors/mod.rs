@@ -16,6 +16,15 @@ pub enum Error {
     #[error("Internal server error")]
     InternalError,
 
+    #[error("Database connection error: {0}")]
+    Database(#[from] sqlx::Error),
+
+    #[error("Repository error: {0}")]
+    Repository(#[from] RepositoryError),
+
+    #[error("Application setup error: {0}")]
+    Setup(String),
+
     #[error("Service error: {0}")]
     Service(#[from] ServiceError),
 
@@ -39,6 +48,14 @@ impl IntoResponse for Error {
     fn into_response(self) -> axum::response::Response {
         let status_code = match self {
             Error::InternalError => StatusCode::INTERNAL_SERVER_ERROR,
+            Error::Database(_) => StatusCode::INTERNAL_SERVER_ERROR,
+            Error::Setup(_) => StatusCode::INTERNAL_SERVER_ERROR,
+            Error::Repository(ref repo_err) => match repo_err {
+                RepositoryError::NotFound => StatusCode::NOT_FOUND,
+                RepositoryError::UniqueViolation(_) => StatusCode::CONFLICT,
+                RepositoryError::ForeignKeyViolation(_) => StatusCode::BAD_REQUEST,
+                _ => StatusCode::INTERNAL_SERVER_ERROR,
+            },
             Error::Service(ref service_err) => match service_err {
                 ServiceError::ValidationError(_) => StatusCode::BAD_REQUEST,
                 ServiceError::NotFoundError(_) => StatusCode::NOT_FOUND,

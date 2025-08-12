@@ -33,6 +33,7 @@ pub struct AppState {
 }
 
 impl AppState {
+    #[allow(clippy::too_many_arguments)]
     pub fn new(
         config: Config,
         auth_service: Arc<dyn AuthServiceTrait>,
