@@ -1,9 +1,12 @@
 use axum::{
     Router,
-    routing::{delete, get, patch, post},
+    routing::{delete, get, patch, post, put},
 };
 
-use crate::{common::state::AppState, handlers::problem};
+use crate::{
+    common::state::AppState,
+    handlers::{problem, tag},
+};
 
 fn problem_routes() -> Router<AppState> {
     Router::new()
@@ -18,6 +21,21 @@ fn problem_routes() -> Router<AppState> {
             "/difficulty/{difficulty}",
             get(problem::get_problems_by_difficulty),
         )
+        .route("/{problem_id}/tags", get(tag::get_tags_for_problem))
+        .route(
+            "/{problem_id}/tags/{tag_name}",
+            post(tag::add_tag_to_problem),
+        )
+        .route(
+            "/{problem_id}/tags/{tag_name}",
+            delete(tag::remove_tag_from_problem),
+        )
+        // Bulk operations
+        .route(
+            "/{problem_id}/tags/bulk",
+            post(tag::bulk_add_tags_to_problem),
+        )
+        .route("/{problem_id}/tags/replace", put(tag::replace_problem_tags))
 }
 
 pub fn router() -> Router<AppState> {
